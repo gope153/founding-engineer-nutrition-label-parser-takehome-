@@ -1,0 +1,38 @@
+{
+    "name": "founding-engineer-nutrition-label-parser-takehome-",
+    "version": "1.0.0",
+    "description": "We expect this to take **4–6 hours**. Please don't spend more than that.",
+    "main": "index.js",
+    "scripts": {
+        "dev": "nodemon application/backend/server.ts",
+        "build": "tsc",
+        "start": "node dist/server.js",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/kv0202-cpu/founding-engineer-nutrition-label-parser-takehome-.git"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "type": "commonjs",
+    "bugs": {
+        "url": "https://github.com/kv0202-cpu/founding-engineer-nutrition-label-parser-takehome-/issues"
+    },
+    "homepage": "https://github.com/kv0202-cpu/founding-engineer-nutrition-label-parser-takehome-#readme",
+    "dependencies": {
+        "@anthropic-ai/sdk": "^0.80.0",
+        "dotenv": "^17.3.1",
+        "express": "^5.2.1",
+        "mongoose": "^9.3.3",
+        "multer": "^2.1.1"
+    },
+    "devDependencies": {
+        "@types/express": "^5.0.6",
+        "@types/multer": "^2.1.0",
+        "@types/node": "^25.5.0",
+        "ts-node": "^10.9.2",
+        "typescript": "^6.0.2"
+    }
+}

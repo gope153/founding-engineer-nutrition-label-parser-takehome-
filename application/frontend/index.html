@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Nutrition Label Parser</title>
+	<link rel="stylesheet" href="style.css">
+</head>
+<body>
+	<header>
+		<h1>Nutrition Label Parser</h1>
+		<div class="header-actions">
+			<button id="upload-btn">Upload Image</button>
+			<button id="seed-btn" class="btn-secondary">Seed</button>
+			<button id="reset-btn" class="btn-danger">Reset DB</button>
+		</div>
+	</header>
+
+	<nav id="main-nav">
+		<button class="nav-tab active" data-view="products">Products</button>
+		<button class="nav-tab" data-view="nutrients">Nutrients</button>
+		<button class="nav-tab" data-view="units">Units</button>
+	</nav>
+
+	<main>
+		<!-- Seed Banner -->
+		<div id="seed-banner" class="hidden">
+			<div class="seed-spinner"></div>
+			<div class="seed-text">
+				<strong>Initial setup — extracting product images...</strong>
+				<span id="seed-progress"></span>
+			</div>
+		</div>
+
+		<!-- Products View -->
+		<section id="view-products">
+			<div id="product-list"></div>
+
+			<div id="product-detail" class="hidden">
+				<div class="detail-nav">
+					<button id="back-btn">&larr; All Products</button>
+					<div id="review-actions">
+						<span class="review-label">Review:</span>
+						<button class="review-btn review-btn-pending" data-status="pending">Pending</button>
+						<button class="review-btn review-btn-approved" data-status="approved">Approved</button>
+						<button class="review-btn review-btn-flagged" data-status="flagged">Flagged</button>
+						<button class="review-btn review-btn-denied" data-status="denied">Denied</button>
+					</div>
+					<div class="detail-nav-arrows">
+						<button id="prev-btn" title="Previous product">&larr; Prev</button>
+						<span id="product-counter"></span>
+						<button id="next-btn" title="Next product">Next &rarr;</button>
+					</div>
+				</div>
+				<div class="detail-layout">
+					<img id="detail-image" src="" alt="">
+					<div id="detail-info">
+						<h2 id="detail-filename"></h2>
+						<p id="detail-manufacturer" class="hidden"></p>
+						<div id="quality-warnings" class="hidden"></div>
+						<div id="serving-info" class="hidden">
+							<div class="serving-badge">
+								<span class="serving-label">Serving Size</span>
+								<span id="serving-size"></span>
+							</div>
+							<div id="servings-container-wrap" class="serving-badge hidden">
+								<span class="serving-label">Servings per Container</span>
+								<span id="servings-per-container"></span>
+							</div>
+						</div>
+						<details id="raw-json-toggle">
+							<summary>Raw JSON</summary>
+							<pre id="raw-json"></pre>
+						</details>
+						<table id="nutrient-table">
+							<thead>
+								<tr>
+									<th>Nutrient</th>
+									<th class="col-amount">Amount</th>
+									<th>Unit</th>
+									<th class="col-amount">%NRV</th>
+								</tr>
+							</thead>
+							<tbody></tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+		</section>
+
+		<!-- Nutrients View -->
+		<section id="view-nutrients" class="hidden">
+			<div id="nutrients-header">
+				<h2>Nutrient Definitions</h2>
+				<p class="view-subtitle">All recognized nutrients with their aliases and categories</p>
+			</div>
+			<div id="nutrient-filters">
+				<button class="filter-btn active" data-category="all">All</button>
+			</div>
+			<!-- Unmatched Nutrients -->
+			<div id="unmatched-section" class="hidden">
+				<h3 class="unmatched-title">Unmatched Nutrients</h3>
+				<p class="view-subtitle">Found on labels but not in definitions — add them to start tracking</p>
+				<div id="unmatched-list"></div>
+			</div>
+
+			<table id="nutrients-def-table">
+				<thead>
+					<tr>
+						<th>Standard Name</th>
+						<th>Category</th>
+						<th>Aliases</th>
+						<th>Default Unit</th>
+					</tr>
+				</thead>
+				<tbody></tbody>
+			</table>
+		</section>
+
+		<!-- Units View -->
+		<section id="view-units" class="hidden">
+			<div id="units-header">
+				<h2>Unit Definitions</h2>
+				<p class="view-subtitle">All recognized units with their aliases</p>
+			</div>
+			<table id="units-def-table">
+				<thead>
+					<tr>
+						<th>Unit</th>
+						<th>Aliases</th>
+					</tr>
+				</thead>
+				<tbody></tbody>
+			</table>
+		</section>
+	</main>
+
+	<dialog id="upload-dialog">
+		<h3>Upload Product Image</h3>
+		<form id="upload-form">
+			<input type="file" name="image" accept="image/*" required>
+			<div class="dialog-actions">
+				<button type="submit">Upload &amp; Analyze</button>
+				<button type="button" class="cancel">Cancel</button>
+			</div>
+		</form>
+		<p id="upload-status"></p>
+	</dialog>
+
+	<script src="app.js"></script>
+</body>
+</html>

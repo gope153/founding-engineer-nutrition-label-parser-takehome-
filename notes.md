@@ -1,0 +1,1 @@
+- die generiteren bilder haben massive fehhler ich wei´nicht ob das absicht ist zum gegencheck oder ob sowas wie vitamin 812 eingelesen werden soll und einfach nur kleiner fehler ist 
