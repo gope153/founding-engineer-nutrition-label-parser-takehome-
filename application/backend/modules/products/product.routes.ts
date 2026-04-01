@@ -7,18 +7,18 @@ import * as controller from "./product.controller";
 const router = Router();
 
 const storage = multer.diskStorage({
-	destination: config.uploadsDir,
-	filename: (_req, file, cb) => {
-		const unique = Date.now() + "-" + Math.round(Math.random() * 1e4);
-		cb(null, unique + path.extname(file.originalname));
-	},
+    destination: config.uploadsDir,
+    filename: (_req, file, cb) => {
+        const unique = Date.now() + "-" + Math.round(Math.random() * 1e4);
+        cb(null, unique + path.extname(file.originalname));
+    },
 });
 
 const upload = multer({
-	storage,
-	fileFilter: (_req, file, cb) => {
-		cb(null, /\.(png|jpg|jpeg|webp)$/i.test(path.extname(file.originalname)));
-	},
+    storage,
+    fileFilter: (_req, file, cb) => {
+        cb(null, /\.(png|jpg|jpeg|webp)$/i.test(path.extname(file.originalname)));
+    },
 });
 
 router.get("/", controller.list);

@@ -15,6 +15,15 @@ function t(standardName) {
 	return standardName;
 }
 
+// --- Helpers ---
+
+function esc(str) {
+	if (!str) return "";
+	const div = document.createElement("div");
+	div.textContent = str;
+	return div.innerHTML;
+}
+
 // --- DOM Elements ---
 
 const productListEl = document.getElementById("product-list");
@@ -106,12 +115,12 @@ function renderProductList(products) {
 			(p) => `
 		<div class="product-card ${p.review_status || ""}" data-id="${p._id}">
 			<div class="card-image-wrap">
-				<img src="/api/products/${p._id}/image" alt="${p.filename}" loading="lazy">
+				<img src="/api/products/${p._id}/image" alt="${esc(p.filename)}" loading="lazy">
 				<div class="card-flags">${getCardFlags(p)}${getReviewBadge(p.review_status)}</div>
 			</div>
 			<div class="card-info">
-				<div class="card-product-name">${p.product_name || p.filename}</div>
-				${p.manufacturer ? `<div class="card-manufacturer">${p.manufacturer}</div>` : ""}
+				<div class="card-product-name">${esc(p.product_name || p.filename)}</div>
+				${p.manufacturer ? `<div class="card-manufacturer">${esc(p.manufacturer)}</div>` : ""}
 				<div class="card-count">${p.nutrients.length} nutrients</div>
 			</div>
 		</div>`
@@ -163,7 +172,7 @@ function renderProductDetail(product) {
 	if (q.quality_notes && q.quality_notes !== "clean") warnings.push(q.quality_notes);
 
 	if (warnings.length > 0) {
-		qualityEl.innerHTML = warnings.map((w) => `<div class="quality-warning">${w}</div>`).join("");
+		qualityEl.innerHTML = warnings.map((w) => `<div class="quality-warning">${esc(w)}</div>`).join("");
 		qualityEl.classList.remove("hidden");
 	} else {
 		qualityEl.classList.add("hidden");
@@ -202,8 +211,8 @@ function renderProductDetail(product) {
 			(n, i) => `
 		<tr class="${n.matched === false ? "unmatched-row" : ""}">
 			<td>
-				<span class="nutrient-display-name">${t(n.nutrient_name_standard)}</span>
-				<span class="raw-name-hint">(${n.nutrient_name_raw})</span>
+				<span class="nutrient-display-name">${esc(t(n.nutrient_name_standard))}</span>
+				<span class="raw-name-hint">(${esc(n.nutrient_name_raw)})</span>
 				${n.matched === false ? ' <span class="flag flag-unmatched">UNKNOWN</span>' : ""}
 				<button class="btn-edit-nutrient" data-index="${i}" title="Change mapping">&#9998;</button>
 			</td>
@@ -345,18 +354,18 @@ function renderUnmatched(items) {
 	list.innerHTML = items
 		.map(
 			(item) => `
-		<div class="unmatched-card" data-standard="${item.nutrient_name_standard}">
+		<div class="unmatched-card" data-standard="${esc(item.nutrient_name_standard)}">
 			<div class="unmatched-info">
-				<strong>${item.nutrient_name_raw}</strong>
-				<span class="unmatched-meta">${item.occurrences}x found | e.g. ${item.example_amount ?? "?"} ${item.example_unit || ""}</span>
-				<code>${item.nutrient_name_standard}</code>
+				<strong>${esc(item.nutrient_name_raw)}</strong>
+				<span class="unmatched-meta">${item.occurrences}x found | e.g. ${item.example_amount ?? "?"} ${esc(item.example_unit || "")}</span>
+				<code>${esc(item.nutrient_name_standard)}</code>
 			</div>
 			<div class="unmatched-actions">
 				<select class="unmatched-category">
 					${categoryOptions}
 				</select>
-				<input class="unmatched-unit" type="text" placeholder="Unit (mg, g, ...)" value="${item.example_unit || "mg"}">
-				<button class="btn-add-nutrient" data-raw="${item.nutrient_name_raw}" data-standard="${item.nutrient_name_standard}">Add</button>
+				<input class="unmatched-unit" type="text" placeholder="Unit (mg, g, ...)" value="${esc(item.example_unit || "mg")}">
+				<button class="btn-add-nutrient" data-raw="${esc(item.nutrient_name_raw)}" data-standard="${esc(item.nutrient_name_standard)}">Add</button>
 			</div>
 		</div>`
 		)
@@ -491,6 +500,78 @@ uploadForm.addEventListener("submit", async (e) => {
 	} catch (err) {
 		uploadStatus.textContent = "Failed: " + err.message;
 	}
+});
+
+// --- CSV Export ---
+
+document.getElementById("export-csv-btn").addEventListener("click", async () => {
+	const res = await fetch("/api/products");
+	const products = await res.json();
+
+	const headers = [
+		"product_image",
+		"product_name",
+		"manufacturer",
+		"review_status",
+		"serving_size",
+		"servings_per_container",
+		"nutrient_name_raw",
+		"nutrient_name_standard",
+		"nutrient_display_name",
+		"amount",
+		"unit",
+		"nrv_percent",
+		"matched",
+	];
+
+	const rows = [];
+	for (const p of products) {
+		const servingStr = p.serving_size
+			? (p.serving_size.amount != null ? `${p.serving_size.amount} ${p.serving_size.unit}` : p.serving_size.raw)
+			: "";
+
+		if (p.nutrients.length === 0) {
+			rows.push([
+				p.filename,
+				p.product_name || "",
+				p.manufacturer || "",
+				p.review_status || "pending",
+				servingStr,
+				p.servings_per_container ?? "",
+				"", "", "", "", "", "", "",
+			]);
+		} else {
+			for (const n of p.nutrients) {
+				rows.push([
+					p.filename,
+					p.product_name || "",
+					p.manufacturer || "",
+					p.review_status || "pending",
+					servingStr,
+					p.servings_per_container ?? "",
+					n.nutrient_name_raw,
+					n.nutrient_name_standard,
+					t(n.nutrient_name_standard),
+					n.amount ?? "",
+					n.unit || "",
+					n.nrv_percent ?? "",
+					n.matched !== false ? "yes" : "no",
+				]);
+			}
+		}
+	}
+
+	const csvContent = [headers, ...rows]
+		.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+		.join("\n");
+
+	const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+	const url = URL.createObjectURL(blob);
+	const a = document.createElement("a");
+	a.href = url;
+	a.download = `nutrition_data_${new Date().toISOString().slice(0, 10)}.csv`;
+	a.click();
+	URL.revokeObjectURL(url);
 });
 
 // --- Review Actions ---
@@ -667,4 +748,4 @@ async function init() {
 	}
 }
 
-init();
+init().catch((err) => console.error("Init failed:", err));

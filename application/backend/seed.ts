@@ -38,7 +38,7 @@ async function seedDefinitions(): Promise<void> {
 				aliases: def.aliases,
 				default_unit: def.default_unit,
 			},
-			{ upsert: true }
+			{ upsert: true, returnDocument: "after" }
 		);
 	}
 	console.log(`[SEED] Seeded ${NUTRIENT_DEFINITIONS.length} nutrient definitions`);

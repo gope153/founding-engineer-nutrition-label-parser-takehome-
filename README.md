@@ -1,100 +1,122 @@
-# Nutrition Label Parser
+# 🏷️ Product Label Nutrition Parser — Take-Home Assignment
 
-A Node.js pipeline that extracts, normalises, and structures nutritional data from product label images using Claude's vision capabilities.
+We expect this to take **4–6 hours**. Please don't spend more than that.
 
-## Quick Start
+---
 
-```bash
-npm install
-echo "ANTHROPIC_API_KEY=your_key" > source_code/.env
-npm start
+## Before you start
+
+Most take-home assignments hand you a spec and ask you to implement it. This one doesn't.
+
+We care less about whether your parser handles every edge case and more about **how you think through a problem that has no clean answer**. The nutrition label domain is intentionally messy, inconsistent, and under-defined — the same way real product work is.
+
+Read the brief. Then decide what to build, what to skip, and why.
+
+---
+
+## Overview
+
+Consumer health and nutrition products publish nutrition or supplement facts on product labels — but these labels vary significantly in layout, formatting, naming conventions, and units.
+
+Your task: **build a system that takes a folder of product label images and produces a structured, normalised dataset of nutritional information.**
+
+A sample image folder is provided. No other setup or scaffolding is given — that's intentional.
+
+---
+
+## Input
+
+```
+sample_images/
+├── product_01.jpg
+├── product_02.jpg
+└── ...
 ```
 
-Output lands in `output/nutrition_data.csv`. Optionally pass custom paths:
+Images may contain nutrition facts panels, supplement facts tables, ingredient lists, and serving size information. They intentionally vary in layout, naming conventions, units, and text structure.
 
-```bash
-npm start -- ./my_images ./my_output/data.csv
-```
+---
 
-## What I Built
+## Output
 
-**Three modules, one pipeline:**
+Produce a structured dataset. CSV or Excel is fine. Save it to `output/nutrition_data.csv`.
 
-| Module | Responsibility |
+Example output schema:
+
+| `product_image` | `nutrient_name_raw` | `nutrient_name_standard` | `amount` | `unit` |
+|---|---|---|---|---|
+| product_01.jpg | Protein | `protein` | 24 | g |
+| product_01.jpg | Ascorbic Acid | `vitamin_c` | 60 | mg |
+| product_02.jpg | Calcium | `calcium` | 200 | mg |
+
+You can extend this schema if you think there's a good reason to. You can simplify it if you think parts are wrong. Just explain why.
+
+---
+
+## Standardisation
+
+Labels use inconsistent names and units for the same nutrients. Your system should normalise them.
+
+### Nutrient naming examples
+
+| Label text | Standard name |
 |---|---|
-| `extract.js` | Sends each image to Claude Sonnet's vision API with a structured extraction prompt. Returns raw JSON per image. |
-| `nutrient-map.js` | Deterministic normalisation layer. Maps raw nutrient names → canonical identifiers and standardises units. |
-| `csv-writer.js` | Writes the final structured dataset. |
-| `pipeline.js` | Orchestrates: discover images → extract concurrently (5 parallel) → normalise → write CSV. |
+| Vitamin C | `vitamin_c` |
+| Ascorbic Acid | `vitamin_c` |
+| Thiamine Mononitrate | `vitamin_b1` |
+| Pyridoxine HCL | `vitamin_b6` |
 
-**Why Claude Vision instead of OCR + NLP?**
+### Unit normalisation examples
 
-Traditional OCR (Tesseract, etc.) struggles with the visual diversity in these labels — rotated text, curved packaging, low contrast, varying fonts. A multimodal LLM handles layout interpretation, text extraction, and basic semantic understanding in a single pass. This collapses what would be a 3–4 step pipeline (OCR → layout detection → text segmentation → entity extraction) into one reliable step.
-
-**Why a separate normalisation layer instead of letting the LLM normalise?**
-
-Determinism. LLMs are probabilistic — the same label might yield `vitamin_b12` one run and `b12` the next. The nutrient map provides a consistent, auditable, version-controlled mapping. The LLM extracts what it sees; the code normalises it. This separation makes both layers independently testable and debuggable.
-
-## What I Decided Not to Build
-
-- **% Daily Value extraction** — present on many labels but not in the requested schema. Easy to add as an optional column, but I stuck to the spec.
-- **Serving size normalisation** — labels express serving sizes in wildly different ways ("1 scoop (6.54g)", "2 Kapseln", "1.5ml"). Normalising these requires unit-aware parsing that's a project in itself. I extract them as-is.
-- **Duplicate detection across images** — product_10/product_01 and product_11/product_12 are the same products photographed differently. A production system would deduplicate, but that requires product identity resolution which is outside scope.
-- **Confidence scores** — would be valuable in production (flag low-confidence extractions for human review), but Claude's API doesn't expose token-level probabilities for vision tasks.
-- **Retry logic / rate limiting** — the pipeline runs 5 concurrent requests. For 13 images this is fine. At scale you'd want exponential backoff and a proper queue.
-
-## The Hardest Part
-
-**AI-generated and stylised images** (product_10, product_12).
-
-Product_10 is an AI-generated image of the MindGuard box. It *looks* like a real nutrition label at first glance, but the text is nonsensical — the LLM hallucinates plausible-sounding nutrients ("Tocotrienol", "Ethanol 2000 IU") from visual noise. This is the most dangerous failure mode: confidently structured garbage. Product_12 is a stylised infographic version of a nutrition panel — same data as product_11 but in a radial design layout.
-
-The ambiguity: should the system try to detect and reject unreadable/AI-generated labels? I chose not to add image authenticity detection — that's a separate problem. But in production this is critical. The right approach would be:
-1. **Validation layer** — cross-reference extracted values against a known nutrient database. "Ethanol 2000 IU" doesn't exist and should be flagged.
-2. **Confidence thresholding** — if extracted nutrients don't match any known compounds above a certain ratio, flag the image for human review.
-3. **Cross-image deduplication** — product_01 and product_10 are the same product. If one extraction is clean and the other is garbage, prefer the clean one.
-
-**German labels** (product_13) were surprisingly clean — Claude handles multilingual extraction well. The nutrient map includes German terms (`Fischöl-Konzentrat`, `davon EPA`) to ensure correct normalisation.
-
-## What I'd Do Next
-
-1. **Validation layer** — cross-reference extracted values against known nutrient ranges (e.g. Vitamin D > 1000µg per serving is almost certainly a misread)
-2. **Schema extension** — add `serving_size`, `servings_per_container`, and `daily_value_percent` as proper columns
-3. **Image pre-processing** — auto-rotation, contrast enhancement, and crop-to-label detection to improve extraction accuracy on difficult images
-4. **Test suite** — snapshot tests comparing extraction output against manually verified ground truth for each sample image
-5. **Streaming / batching** — for large image sets, stream results to CSV incrementally instead of holding everything in memory
-
-## Output Schema
-
-| Column | Description |
+| Input | Standard unit |
 |---|---|
-| `product_image` | Source filename |
-| `nutrient_name_raw` | Exactly as printed on the label |
-| `nutrient_name_standard` | Canonical snake_case identifier |
-| `amount` | Numeric value |
-| `unit` | Standardised unit (mg, g, µg, IU, kcal, kJ) |
+| milligrams | `mg` |
+| grams | `g` |
+| mcg | `µg` |
+| IU | `IU` |
 
-## Architecture
+These are illustrative, not exhaustive. How far you take normalisation — and where you draw the line — is your call.
+
+---
+
+## What we're looking for
+
+We will not be running your code against a hidden test suite. We'll be reading it.
+
+| Criteria | What we're actually evaluating |
+|---|---|
+| Problem decomposition | Did you identify the hard parts early? What did you solve vs. defer, and why? |
+| System design | Is the architecture clear? Would it hold up at 10× the image volume? |
+| Judgment under ambiguity | There are at least five places where the right answer isn't obvious. What did you do at each? |
+| Code quality | Does the code reflect clear thinking? Is it easy to modify? |
+
+A senior engineer who makes three well-reasoned tradeoffs and documents them clearly will score higher than one who attempts to handle every case without acknowledging the mess.
+
+---
+
+## Deliverables
+
+A GitHub repository containing:
 
 ```
-Sample_images/
-    │
-    ▼
-┌──────────┐     ┌────────────────┐     ┌────────────┐
-│ pipeline │────▶│  extract.js    │────▶│ Claude API │
-│   .js    │     │  (per image)   │     │  (Vision)  │
-└──────────┘     └────────────────┘     └────────────┘
-    │                    │
-    │              raw JSON[]
-    │                    │
-    │            ┌───────▼────────┐
-    │            │ nutrient-map   │
-    │            │ (normalise)    │
-    │            └───────┬────────┘
-    │                    │
-    │            normalised rows
-    │                    │
-    │            ┌───────▼────────┐
-    └───────────▶│  csv-writer    │──▶ output/nutrition_data.csv
-                 └────────────────┘
+README.md
+source_code/
+sample_output/
 ```
+
+Your README is as important as your code. It should cover:
+
+- **What you built** — your approach and key decisions
+- **What you decided not to build** — and why
+- **The hardest part** — what was genuinely ambiguous and how you resolved it
+- **What you'd do next** with more time
+
+There are no constraints on language, tools, models, or frameworks. Use whatever you think is right.
+
+---
+
+## Submission
+
+1. Fork this repository
+2. Add your solution
+3. Share your forked repo link with us

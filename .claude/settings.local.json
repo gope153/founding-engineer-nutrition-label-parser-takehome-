@@ -14,7 +14,8 @@
       "Bash(\"$f.tmp\")",
       "Bash(mv \"$f.tmp\" \"$f\")",
       "Bash(done)",
-      "Bash(do perl:*)"
+      "Bash(do perl:*)",
+      "Bash(grep -r \"TODO\\\\|FIXME\\\\|HACK\\\\|XXX\" /Users/markuskuhn/work/projects/founding-engineer-nutrition-label-parser-takehome-/application --include=*.ts --include=*.js)"
     ]
   }
 }
